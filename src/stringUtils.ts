@@ -26,3 +26,7 @@ export function isFloat(s: string): boolean {
 export function isWord(s: string): boolean {
     return /^[a-zA-Z_]$/.test(s)
 }
+
+export function isSingleLineComment(index: number, s: string): boolean {
+    return index + 1 < s.length && s[index] === "/" && s[index + 1] === "/"
+}

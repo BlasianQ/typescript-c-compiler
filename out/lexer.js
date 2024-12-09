@@ -56,8 +56,8 @@ function tokenize(input) {
         while (endIndex < input.length && /^[a-zA-Z0-9_]$/.test(input[endIndex])) {
             endIndex++;
         }
-        const word = input.substring(startIndex, endIndex);
-        return keywords.has(word) ? [{ keyword: word }, endIndex] : [{ identifier: word }, endIndex];
+        const word = input.slice(startIndex, endIndex);
+        return keywords.has(word) ? [{ type: "keyword", value: word }, endIndex] : [{ type: "identifier", value: word }, endIndex];
     }
     /**
      * Processes input into operator token
@@ -69,15 +69,15 @@ function tokenize(input) {
         while (endIndex < input.length && utils.isOperator(input[endIndex])) {
             endIndex++;
         }
-        const op = input.substring(startIndex, endIndex);
+        const op = input.slice(startIndex, endIndex);
         if (["+", "-", "*", "/", "%", "++", "--"].includes(op)) {
-            return [{ arithmetic: op }, endIndex];
+            return [{ type: "arithmetic", value: op }, endIndex];
         }
         else if (["<", "<=", ">", ">=", "==", "!=", "&&", "||", "!"].includes(op)) {
-            return [{ relational: op }, endIndex];
+            return [{ type: "relational", value: op }, endIndex];
         }
         else if (["=", "-=", "+=", "*=", "/=", "%="].includes(op)) {
-            return [{ assignment: op }, endIndex];
+            return [{ type: "assignment", value: op }, endIndex];
         }
         else {
             throw Error(`Ivalid operator: ${op}`);
@@ -98,8 +98,8 @@ function tokenize(input) {
         if (endIndex >= input.length) {
             throw Error("Missing clossing quotation: \"");
         }
-        const str = input.substring(startIndex, endIndex);
-        return [{ string: str }, endIndex + 1];
+        const str = input.slice(startIndex, endIndex);
+        return [{ type: "string", value: str }, endIndex + 1];
     }
     /**
      * Processes input into character token
@@ -117,8 +117,8 @@ function tokenize(input) {
             throw Error("Missing clossing quotation: \'");
         }
         // char type in C allows for multiple characters, but it is advised not to do this
-        const charSequence = input.substring(startIndex, endIndex);
-        return [{ string: charSequence }, endIndex + 1];
+        const charSequence = input.slice(startIndex, endIndex);
+        return [{ type: "character", value: charSequence }, endIndex + 1];
     }
     /**
      * Processes input into integer of float token
@@ -130,18 +130,26 @@ function tokenize(input) {
         while (endIndex < input.length && /[.\deE]/.test(input[endIndex])) {
             endIndex++;
         }
-        const numLiteral = input.substring(startIndex, endIndex);
+        const numLiteral = input.slice(startIndex, endIndex);
         if (utils.isInteger(numLiteral)) {
-            return [{ integer: parseInt(numLiteral) }, endIndex];
+            return [{ type: "integer", value: parseInt(numLiteral) }, endIndex];
         }
         if (utils.isFloat(numLiteral)) {
-            return [{ float: parseFloat(numLiteral) }, endIndex];
+            return [{ type: "float", value: parseFloat(numLiteral) }, endIndex];
         }
         throw Error(`Invalid number: ${numLiteral}`);
     }
-    function example(i) {
-        const t = { keyword: "you" };
-        return t;
+    /**
+     * Ignores input after startIndex until newline
+     * @param startIndex of input
+     * @returns index after newline
+     */
+    function skipSingleLineComment(startIndex) {
+        startIndex++;
+        while (startIndex < input.length && input[startIndex] != '\n') {
+            startIndex++;
+        }
+        return startIndex + 1;
     }
     // Main tokenize function logic:
     const tokens = [];
@@ -152,9 +160,12 @@ function tokenize(input) {
         if (utils.isWhitespace(char)) {
             i++;
         }
+        else if (utils.isSingleLineComment(i, input)) {
+            i = skipSingleLineComment(i);
+        }
         else if (utils.isDelimiter(char)) {
             i++;
-            tokens.push({ delimiter: char });
+            tokens.push({ type: "delimiter", value: char });
         }
         else if (char === "\"") {
             [token, i] = processString(i);

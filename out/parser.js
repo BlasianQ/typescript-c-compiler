@@ -1,86 +1,101 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = parse;
+/**
+ * Transforms list of tokens into a well formed Abstract Syntax Tree based upon a formalized grammar (Syntax Analysis)
+ * <program> ::= <function>
+ * i.e. a program node consists of a function node
+ * @param tokens List of tokens
+ * @returns AST root node
+ */
 function parse(tokens) {
-    const prog = {
+    const program = {
+        type: "program",
         children: parseFunction(tokens)
     };
-    return prog;
+    return program;
 }
+/**
+ * Production Rule (Grammar) :
+ * <function> ::= "int" <id> "(" ")" "{" <statement> "}"
+ * @param tokens List of tokens
+ * @returns FunctionDeclarationNode
+ */
 function parseFunction(tokens) {
     let tok = tokens.shift();
     if (tok === undefined || !isTokenOf(tok, "keyword", "int")) {
-        throw Error(`Unexpected token in function: ${tok}`);
+        throw Error(`Unexpected token in function: ${JSON.stringify(tok) || "missing"}`);
     }
-    console.log(tok);
     let funcName = tokens.shift();
-    if (funcName === undefined || !("identifier" in funcName)) {
-        throw Error(`Unexpected token in function: ${tok}`);
+    if (funcName === undefined || !isTokenOf(funcName, "identifier")) {
+        throw Error(`Unexpected token in function: ${JSON.stringify(tok) || "missing"}`);
     }
     tok = tokens.shift();
     if (tok === undefined || !isTokenOf(tok, "delimiter", "(")) {
-        throw Error(`Unexpected token in function: ${tok}`);
+        throw Error(`Unexpected token in function: ${JSON.stringify(tok) || "missing"}`);
     }
-    console.log(tok);
     tok = tokens.shift();
     if (tok === undefined || !isTokenOf(tok, "delimiter", ")")) {
-        throw Error(`Unexpected token in function: ${tok}`);
+        throw Error(`Unexpected token in function: ${JSON.stringify(tok) || "missing"}`);
     }
-    console.log(tok);
     tok = tokens.shift();
     if (tok === undefined || !isTokenOf(tok, "delimiter", "{")) {
-        throw Error(`Unexpected token in function: ${tok}`);
+        throw Error(`Unexpected token in function: ${JSON.stringify(tok) || "missing"}`);
     }
-    console.log(tok);
     const func = {
-        name: funcName.identifier,
+        type: "function",
+        name: funcName.value,
         children: parseStatement(tokens)
     };
     tok = tokens.shift();
     if (tok === undefined || !isTokenOf(tok, "delimiter", "}")) {
-        throw Error(`Unexpected token in function: ${tok}`);
+        throw Error(`Unexpected token in function: ${JSON.stringify(tok) || "missing"}`);
     }
-    console.log(tok);
     return func;
 }
+/**
+ * Production Rule (Grammar) :
+ * <statement> ::= "return" <exp> ";"
+ * @param tokens List of tokens
+ * @returns FunctionDeclarationNode
+ */
 function parseStatement(tokens) {
     let tok = tokens.shift();
     if (tok === undefined || !isTokenOf(tok, "keyword", "return")) {
-        throw Error(`Unexpected token in function: ${tok}`);
+        throw Error(`Unexpected token in statement: ${JSON.stringify(tok) || "missing"}`);
     }
-    console.log(tok);
-    // tok = tokens.shift();
-    // if (tok === undefined || !("integer" in tok)) {
-    //     throw Error(`Unexpected token in function: ${tok}`)
-    // }
-    // console.log(tok)
     const statement = {
+        type: "statement",
         children: parseExpression(tokens)
     };
     tok = tokens.shift();
     if (tok === undefined || !isTokenOf(tok, "delimiter", ";")) {
-        throw Error(`Unexpected token in function: ${tok}`);
+        throw Error(`Unexpected token in statement: ${JSON.stringify(tok) || "missing"}`);
     }
-    console.log(tok);
     return statement;
 }
+/**
+ * Production Rule (Grammar) :
+ * <exp> ::= <int>
+ * @param tokens List of tokens
+ * @returns FunctionDeclarationNode
+ */
 function parseExpression(tokens) {
     let tok = tokens.shift();
-    if (tok === undefined || !("integer" in tok)) {
-        throw Error(`Unexpected token in function: ${tok}`);
+    if (tok === undefined || !isTokenOf(tok, "integer")) {
+        throw Error(`Unexpected token in expression: ${JSON.stringify(tok) || "missing"}`);
     }
     const exp = {
-        value: tok.integer
+        type: "expression",
+        value: tok.value
     };
     const ret = {
+        type: "return",
         children: exp
     };
-    // tok = tokens.shift();
-    // if (tok === undefined || !isTokenOf(tok, "delimiter", ";")) {
-    //     throw Error(`Unexpected token in function: ${tok}`)
-    // }
     return ret;
 }
-function isTokenOf(token, key, value) {
-    return key in token && token[key] === value;
+// Helper function for token type and value matching
+function isTokenOf(token, type, value) {
+    return token.type === type && (value === undefined || token.value === value);
 }

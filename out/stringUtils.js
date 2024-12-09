@@ -7,6 +7,7 @@ exports.isDigit = isDigit;
 exports.isInteger = isInteger;
 exports.isFloat = isFloat;
 exports.isWord = isWord;
+exports.isSingleLineComment = isSingleLineComment;
 function isWhitespace(s) {
     return s.length === 1 && /\s/.test(s);
 }
@@ -28,4 +29,7 @@ function isFloat(s) {
 }
 function isWord(s) {
     return /^[a-zA-Z_]$/.test(s);
+}
+function isSingleLineComment(index, s) {
+    return index + 1 < s.length && s[index] === "/" && s[index + 1] === "/";
 }

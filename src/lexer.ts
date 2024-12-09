@@ -10,12 +10,12 @@ export default function tokenize(input: string): Token[] {
     // TODO: Add processComment function
 
     const keywords: Set<string> = new Set(
-            ["auto", "break", "case", "char", "const", "continue", "default", "do",
+        ["auto", "break", "case", "char", "const", "continue", "default", "do",
             "double", "else", "enum", "extern", "float", "for", "goto", "if", "int",
             "long", "register", "return", "short", "signed", "sizeof", "static",
             "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while"]
-        );
-    
+    );
+
     /**
      * Processes input into keyword or identifier token
      * @param startIndex of input
@@ -26,8 +26,8 @@ export default function tokenize(input: string): Token[] {
         while (endIndex < input.length && /^[a-zA-Z0-9_]$/.test(input[endIndex])) {
             endIndex++
         }
-        const word: string = input.substring(startIndex, endIndex)
-        return keywords.has(word) ? [{ keyword: word }, endIndex] : [{ identifier: word }, endIndex]
+        const word: string = input.slice(startIndex, endIndex)
+        return keywords.has(word) ? [{ type: "keyword", value: word }, endIndex] : [{ type: "identifier", value: word }, endIndex]
     }
 
     /**
@@ -40,13 +40,13 @@ export default function tokenize(input: string): Token[] {
         while (endIndex < input.length && utils.isOperator(input[endIndex])) {
             endIndex++
         }
-        const op: string = input.substring(startIndex, endIndex)
+        const op: string = input.slice(startIndex, endIndex)
         if (["+", "-", "*", "/", "%", "++", "--"].includes(op)) {
-            return [{ arithmetic: op }, endIndex]
+            return [{ type: "arithmetic", value: op }, endIndex]
         } else if (["<", "<=", ">", ">=", "==", "!=", "&&", "||", "!"].includes(op)) {
-            return [{ relational: op }, endIndex]
+            return [{ type: "relational", value: op }, endIndex]
         } else if (["=", "-=", "+=", "*=", "/=", "%="].includes(op)) {
-            return [{ assignment: op }, endIndex]
+            return [{ type: "assignment", value: op }, endIndex]
         } else {
             throw Error(`Ivalid operator: ${op}`)
         }
@@ -67,8 +67,8 @@ export default function tokenize(input: string): Token[] {
         if (endIndex >= input.length) {
             throw Error("Missing clossing quotation: \"")
         }
-        const str: string = input.substring(startIndex, endIndex)
-        return [{ string: str }, endIndex + 1]
+        const str: string = input.slice(startIndex, endIndex)
+        return [{ type: "string", value: str }, endIndex + 1]
     }
 
     /**
@@ -87,8 +87,8 @@ export default function tokenize(input: string): Token[] {
             throw Error("Missing clossing quotation: \'")
         }
         // char type in C allows for multiple characters, but it is advised not to do this
-        const charSequence: string = input.substring(startIndex, endIndex)
-        return [{ string: charSequence }, endIndex + 1]
+        const charSequence: string = input.slice(startIndex, endIndex)
+        return [{ type: "character", value: charSequence }, endIndex + 1]
     }
 
     /**
@@ -101,57 +101,68 @@ export default function tokenize(input: string): Token[] {
         while (endIndex < input.length && /[.\deE]/.test(input[endIndex])) {
             endIndex++
         }
-        const numLiteral: string = input.substring(startIndex, endIndex)
+        const numLiteral: string = input.slice(startIndex, endIndex)
         if (utils.isInteger(numLiteral)) {
-            return [{ integer: parseInt(numLiteral)}, endIndex]
+            return [{ type: "integer", value: parseInt(numLiteral) }, endIndex]
         }
         if (utils.isFloat(numLiteral)) {
-            return [{ float: parseFloat(numLiteral)}, endIndex]
+            return [{ type: "float", value: parseFloat(numLiteral) }, endIndex]
         }
         throw Error(`Invalid number: ${numLiteral}`)
     }
 
-    function example(i: number): Extract<Token, {keyword: string}> {
-        const t: Token = {keyword:"you"}
-        return t
+    /**
+     * Ignores input after startIndex until newline
+     * @param startIndex of input
+     * @returns index after newline
+     */
+    function skipSingleLineComment(startIndex: number): number {
+        startIndex++;
+        while (startIndex < input.length && input[startIndex] != '\n') {
+            startIndex++
+        }
+        return startIndex + 1
     }
 
     // Main tokenize function logic:
-    const tokens: Token[] = []
-    let i = 0
+    const tokens: Token[] = [];
+    let i = 0;
     while (i < input.length) {
-        const char = input[i]
-        let token: Token
+        const char = input[i];
+        let token: Token;
         if (utils.isWhitespace(char)) {
-            i++
+            i++;
+
+        } else if (utils.isSingleLineComment(i, input)) {
+            i = skipSingleLineComment(i);
 
         } else if (utils.isDelimiter(char)) {
-            i++
-            tokens.push({ delimiter: char })
+            i++;
+            tokens.push({ type: "delimiter", value: char });
 
         } else if (char === "\"") {
-            [token, i] = processString(i)
-            tokens.push(token)
+            [token, i] = processString(i);
+            tokens.push(token);
 
         } else if (char === "\'") {
-            [token, i] = processCharacter(i)
-            tokens.push(token)
+            [token, i] = processCharacter(i);
+            tokens.push(token);
 
         } else if (utils.isOperator(char)) {
-            [token, i] = processOperator(i)
-            tokens.push(token)
+            [token, i] = processOperator(i);
+            tokens.push(token);
 
         } else if (utils.isDigit(char)) {
-            [token, i] = processNumber(i)
-            tokens.push(token)
+            [token, i] = processNumber(i);
+            tokens.push(token);
 
         } else if (utils.isWord(char)) {
-            [token, i] = processWord(i)
-            tokens.push(token)
+            [token, i] = processWord(i);
+            tokens.push(token);
 
         } else {
-            throw Error(`Unrecognized character: ${char}`)
+            throw Error(`Unrecognized character: ${char}`);
         }
     }
-    return tokens
+    return tokens;
 }
